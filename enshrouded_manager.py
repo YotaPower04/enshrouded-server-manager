@@ -266,6 +266,10 @@ class FirstRunOverlay(QWidget):
     def show_skip_button(self):
         self._skip_btn.setVisible(True)
 
+    def hide_buttons(self):
+        self._complete_btn.setVisible(False)
+        self._skip_btn.setVisible(False)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if self.parent():
@@ -363,7 +367,6 @@ class WorldsWidget(QWidget):
 
         btn_row = QHBoxLayout()
         self._switch_btn   = QPushButton("Switch to Selected")
-        self._new_btn      = QPushButton("New World")
         self._nickname_btn = QPushButton("Set Nickname")
         self._import_btn   = QPushButton("Import Save…")
         self._delete_btn   = QPushButton("Delete World")
@@ -372,14 +375,13 @@ class WorldsWidget(QWidget):
             "QPushButton:hover { background:#e74c3c; }"
             "QPushButton:disabled { background:#555; color:#999; }"
         )
-        for btn in (self._switch_btn, self._new_btn, self._nickname_btn,
+        for btn in (self._switch_btn, self._nickname_btn,
                     self._import_btn, self._delete_btn):
             btn.setMinimumHeight(38)
             btn_row.addWidget(btn)
         layout.addLayout(btn_row)
 
         self._switch_btn.clicked.connect(self._switch)
-        self._new_btn.clicked.connect(self._new_world)
         self._nickname_btn.clicked.connect(self._set_nickname)
         self._import_btn.clicked.connect(self._import_world)
         self._delete_btn.clicked.connect(self._delete_world)
@@ -444,25 +446,6 @@ class WorldsWidget(QWidget):
         set_active_world(world)
         self.refresh()
         self.world_switched.emit()
-
-    def _new_world(self):
-        nick, ok = QInputDialog.getText(self, "New World", "World nickname:")
-        if not ok or not nick.strip():
-            return
-        nick = nick.strip()
-        # Generate a safe folder name from the nickname
-        folder_name = nick.lower().replace(" ", "_")
-        base = folder_name
-        counter = 2
-        while (WORLDS_DIR / folder_name).exists():
-            folder_name = f"{base}_{counter}"
-            counter += 1
-        (WORLDS_DIR / folder_name).mkdir(parents=True)
-        ensure_world_config(WORLDS_DIR / folder_name)
-        nicknames = load_nicknames()
-        nicknames[folder_name] = nick
-        save_nicknames(nicknames)
-        self.refresh()
 
     def _delete_world(self):
         world = self._selected_world()
@@ -1765,6 +1748,7 @@ class MainWindow(QMainWindow):
     def _complete_first_run_setup(self):
         """Called when the user clicks 'Complete Setup Now' on the overlay."""
         if self._overlay:
+            self._overlay.hide_buttons()
             self._overlay.set_status("Stopping server to complete setup…")
         if self._is_running():
             self.stop_server()
