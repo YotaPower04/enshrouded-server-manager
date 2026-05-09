@@ -22,9 +22,11 @@ A PyQt6 desktop app for managing a dedicated Enshrouded server on Linux. Runs th
 
 ## Installation
 
-Use the GUI installer from the companion repo:
+Download the latest release zip, extract it, and run:
 
-**[enshrouded-server-manager-guiinstaller](https://github.com/YotaPower04/enshrouded-server-manager-guiinstaller)**
+```bash
+bash install.sh
+```
 
 The installer handles everything: downloading SteamCMD, the Enshrouded server, GE-Proton, setting up a Python venv with PyQt6, and creating desktop shortcuts.
 
