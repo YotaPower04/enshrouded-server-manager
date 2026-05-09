@@ -1246,7 +1246,6 @@ class MainWindow(QMainWindow):
         return self._process.state() != QProcess.ProcessState.NotRunning
 
     def start_server(self):
-        import subprocess
         if not SERVER_BIN.exists():
             QMessageBox.critical(self, "Error", f"Server binary not found:\n{SERVER_BIN}")
             return
@@ -1254,17 +1253,34 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"Wine not found:\n{WINE64_BIN}")
             return
         LOG_DIR.mkdir(parents=True, exist_ok=True)
-        # Kill any orphaned server/wine processes from previous sessions.
-        import time as _t
+        # Kill any orphaned enshrouded_server.exe processes from prior sessions.
         subprocess.run(["pkill", "-KILL", "-f", "enshrouded_server.exe"], capture_output=True)
-        subprocess.run(["pkill", "-KILL", "-f", "wineserver"], capture_output=True)
-        # Wait until port 15637 is actually free (up to 8 seconds).
-        for _ in range(8):
-            r = subprocess.run(["ss", "-ulnp"], capture_output=True, text=True)
-            if "15637" not in r.stdout and "15636" not in r.stdout:
-                break
-            _t.sleep(1)
+        # Kill only our prefix's wineserver (not system-wide, to avoid disrupting other apps).
+        wineserver_bin = GE_PROTON_DIR / "files" / "bin" / "wineserver"
+        if wineserver_bin.exists():
+            subprocess.run(
+                [str(wineserver_bin), "-k9"],
+                env={**os.environ, "WINEPREFIX": str(WINE_PREFIX)},
+                capture_output=True, timeout=5,
+            )
         self._log.append_info(f"Starting server — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        # Wait for ports to clear without blocking the event loop, then launch.
+        self._port_wait_attempts = 0
+        self._port_wait_timer = QTimer(self)
+        self._port_wait_timer.setInterval(1000)
+        self._port_wait_timer.timeout.connect(self._wait_for_port_then_start)
+        self._port_wait_timer.start()
+
+    def _wait_for_port_then_start(self):
+        r = subprocess.run(["ss", "-ulnp"], capture_output=True, text=True)
+        self._port_wait_attempts += 1
+        ports_clear = "15637" not in r.stdout and "15636" not in r.stdout
+        if ports_clear or self._port_wait_attempts >= 8:
+            self._port_wait_timer.stop()
+            self._port_wait_timer.deleteLater()
+            self._do_start_server()
+
+    def _do_start_server(self):
         env = QProcessEnvironment.systemEnvironment()
         env.insert("HOME", os.environ.get("HOME", str(Path.home())))
         env.insert("WINEPREFIX", str(WINE_PREFIX))
