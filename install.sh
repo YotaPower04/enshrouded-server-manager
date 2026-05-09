@@ -337,7 +337,7 @@ ENTRY
 # ---------------------------------------------------------------------------
 print_port_info() {
     local local_ip
-    local_ip=$(hostname -I 2>/dev/null | awk '{print $1}') || local_ip="<your local IP>"
+    local_ip=$(timeout 3 hostname -I 2>/dev/null | awk '{print $1}') || local_ip="<your local IP>"
 
     echo ""
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
