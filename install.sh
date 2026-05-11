@@ -126,10 +126,6 @@ download_server() {
 
     [[ -n "$tmp_link" ]] && rm -f "$tmp_link"
     success "Enshrouded Dedicated Server downloaded."
-
-    info "Removing SteamCMD..."
-    rm -rf "$INSTALL_DIR/steamcmd"
-    success "SteamCMD removed."
 }
 
 # ---------------------------------------------------------------------------
